@@ -68,28 +68,45 @@ exports.Lexer = class Lexer
 
     (new Rewriter).rewrite @tokens
 
+    # hack to display line numbers in compiled JS code when in debug mode
     if @options.debug
-      line = ''
       res = []
+
+      # list of special tokens that could change the line number -- to be ignored
+      # TODO: re-use constants instead of redefining
       blocks = [['(', ')'], ['[', ']'], ['{', '}'], ['INDENT', 'OUTDENT'], ['CALL_START', 'CALL_END'], ['PARAM_START', 'PARAM_END'], ['INDEX_START', 'INDEX_END'], ['INDENT', 'OUTDENT', 'TERMINATOR']];
       blocks = flatten blocks
 
-      last_token = null
+      lastToken = null
+      tmp = []
+
       for t in @tokens
-        res.push t
+        tmp.push t
 
         if t[0] == 'TERMINATOR'
           line = 'line '
-          if last_token
-            line += last_token[2]+1
-          else
-            line += t[2]+1
-          res.push ['HERECOMMENT', line, t[2]]
+          lineNumber = t[2]
+          if lastToken
+            lineNumber = lastToken[2]
+
+          line += lineNumber+1
+
+          # push comment with line number
+          res.push ['HERECOMMENT', line, lineNumber]
+
           res.push t
+
+          # push tokens (actual source code)
+          res.push tm for tm in tmp
+
+          # reset
           line = ''
+          tmp = []
 
         if t[0] not in blocks
-          last_token = t
+          lastToken = t
+
+
       
       @tokens = res
 
