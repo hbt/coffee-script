@@ -34,6 +34,7 @@ exports.helpers = require './helpers'
 exports.compile = compile = (code, options = {}) ->
   {merge} = exports.helpers
   try
+    lexer.options = options
     (parser.parse lexer.tokenize code).compile merge {}, options
   catch err
     err.message = "In #{options.filename}, #{err.message}" if options.filename

@@ -10,7 +10,7 @@
 {Rewriter, INVERSES} = require './rewriter'
 
 # Import the helpers we need.
-{count, starts, compact, last} = require './helpers'
+{count, starts, compact, last, flatten} = require './helpers'
 
 # The Lexer Class
 # ---------------
@@ -20,6 +20,8 @@
 # pushing some extra smarts into the Lexer.
 exports.Lexer = class Lexer
 
+  @options = {}
+  
   # **tokenize** is the Lexer's main method. Scan by attempting to match tokens
   # one at a time, using a regular expression anchored at the start of the
   # remaining code, or a custom recursive token-matching method
@@ -63,7 +65,35 @@ exports.Lexer = class Lexer
     @closeIndentation()
     @error "missing #{tag}" if tag = @ends.pop()
     return @tokens if opts.rewrite is off
+
     (new Rewriter).rewrite @tokens
+
+    if @options.debug
+      line = ''
+      res = []
+      blocks = [['(', ')'], ['[', ']'], ['{', '}'], ['INDENT', 'OUTDENT'], ['CALL_START', 'CALL_END'], ['PARAM_START', 'PARAM_END'], ['INDEX_START', 'INDEX_END'], ['INDENT', 'OUTDENT', 'TERMINATOR']];
+      blocks = flatten blocks
+
+      last_token = null
+      for t in @tokens
+        res.push t
+
+        if t[0] == 'TERMINATOR'
+          line = 'line '
+          if last_token
+            line += last_token[2]+1
+          else
+            line += t[2]+1
+          res.push ['HERECOMMENT', line, t[2]]
+          res.push t
+          line = ''
+
+        if t[0] not in blocks
+          last_token = t
+      
+      @tokens = res
+
+    @tokens
 
   # Tokenizers
   # ----------

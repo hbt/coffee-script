@@ -30,6 +30,7 @@ BANNER = '''
 SWITCHES = [
   ['-b', '--bare',            'compile without a top-level function wrapper']
   ['-c', '--compile',         'compile to JavaScript and save as .js files']
+  ['-d', '--debug',         'display line numbers before instructions']
   ['-e', '--eval',            'pass a string from the command line as input']
   ['-h', '--help',            'display this help message']
   ['-i', '--interactive',     'run an interactive CoffeeScript REPL']
@@ -128,6 +129,7 @@ compileScript = (file, input, base) ->
       sourceCode[sources.indexOf(t.file)] = t.input
       compileJoin()
     else
+      t.options.debug = true if o.debug
       t.output = CoffeeScript.compile t.input, t.options
       CoffeeScript.emit 'success', task
       if o.print          then printLine t.output.trim()
