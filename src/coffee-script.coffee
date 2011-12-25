@@ -48,8 +48,8 @@ exports.postCompilationMatchLines = (code) ->
       continue
 
     # skip line after /*line -- comment
-    if line is "*/" && newLines[curLine] is ""
-      continue
+    if line.indexOf("*/") is 0 && newLines[curLine] is ""
+      line = line.substring(2)
 
     newLines[curLine] += line
 

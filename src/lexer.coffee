@@ -77,24 +77,32 @@ exports.Lexer = class Lexer
       blocks = flatten blocks
 
       lastToken = null
+      lineBlocks = ['INDENT']
       tmp = []
+      lastTokenHadNewLine = false
 
       for t in @tokens
         tmp.push t
-        # TODO: improve to handle "newLine" attribute. Careful with indentation errors 
 
-        if t[0] == 'TERMINATOR' 
+        lastTokenHadNewLine = true if lastToken and lastToken.newLine and lastToken[0] isnt 'TERMINATOR'
+
+        lastTokenLineNumber = lastToken[2] if lastTokenHadNewLine
+
+        if t[0] is 'TERMINATOR' or (t[0] in lineBlocks and lastTokenHadNewLine)
+          lastTokenHadNewLine = false if t[0] is 'TERMINATOR'
           line = 'line '
           lineNumber = t[2]
           if lastToken
             lineNumber = lastToken[2]
 
+          if lastTokenHadNewLine
+            lineNumber = lastTokenLineNumber
+
           line += lineNumber+1
 
           # push comment with line number
           res.push ['HERECOMMENT', line, lineNumber]
-
-          res.push t
+          res.push ['TERMINATOR', "\n", lineNumber]
 
           # push tokens (actual source code)
           res.push tm for tm in tmp
@@ -102,6 +110,9 @@ exports.Lexer = class Lexer
           # reset
           line = ''
           tmp = []
+          lastTokenHadNewLine = false
+          lastToken = null
+          
 
         if t[0] not in blocks
           lastToken = t
