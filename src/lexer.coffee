@@ -21,7 +21,7 @@
 exports.Lexer = class Lexer
 
   @options = {}
-  
+
   # **tokenize** is the Lexer's main method. Scan by attempting to match tokens
   # one at a time, using a regular expression anchored at the start of the
   # remaining code, or a custom recursive token-matching method
@@ -73,36 +73,28 @@ exports.Lexer = class Lexer
 
       # list of special tokens that could change the line number -- to be ignored
       # TODO: re-use constants instead of redefining
-      blocks = [['(', ')'], ['[', ']'], ['{', '}'], ['INDENT', 'OUTDENT'], ['CALL_START', 'CALL_END'], ['PARAM_START', 'PARAM_END'], ['INDEX_START', 'INDEX_END'], ['INDENT', 'OUTDENT', 'TERMINATOR']];
+      blocks = [['(', ')'], ['[', ']'], ['{', '}'], ['CALL_START', 'CALL_END'], ['PARAM_START', 'PARAM_END'], ['INDEX_START', 'INDEX_END'], ['INDENT', 'OUTDENT', 'TERMINATOR']];
       blocks = flatten blocks
 
       lastToken = null
-      lineBlocks = ['INDENT']
       tmp = []
-      lastTokenHadNewLine = false
 
       for t in @tokens
         tmp.push t
+        # TODO: improve to handle "newLine" attribute. Careful with indentation errors
 
-        lastTokenHadNewLine = true if lastToken and lastToken.newLine and lastToken[0] isnt 'TERMINATOR'
-
-        lastTokenLineNumber = lastToken[2] if lastTokenHadNewLine
-
-        if t[0] is 'TERMINATOR' or (t[0] in lineBlocks and lastTokenHadNewLine)
-          lastTokenHadNewLine = false if t[0] is 'TERMINATOR'
+        if t[0] is 'TERMINATOR'
           line = 'line '
           lineNumber = t[2]
           if lastToken
             lineNumber = lastToken[2]
 
-          if lastTokenHadNewLine
-            lineNumber = lastTokenLineNumber
-
           line += lineNumber+1
 
           # push comment with line number
           res.push ['HERECOMMENT', line, lineNumber]
-          res.push ['TERMINATOR', "\n", lineNumber]
+
+          res.push t
 
           # push tokens (actual source code)
           res.push tm for tm in tmp
@@ -110,9 +102,7 @@ exports.Lexer = class Lexer
           # reset
           line = ''
           tmp = []
-          lastTokenHadNewLine = false
           lastToken = null
-          
 
         if t[0] not in blocks
           lastToken = t
