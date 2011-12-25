@@ -34,29 +34,45 @@ exports.postCompilationMatchLines = (code) ->
   # break the code by line breaks
   lines = code.split("\n")
 
+#  console.log code
   newLines = []
+
+  newLines.push("") for line in lines
 
   curLine = 0
 
   for line in lines
     line = line.trim()
 
-    if line.indexOf('/*line ') is 0
+    if line.indexOf('"/*line ') is 0
       curLine = line.match(/\d+/)
-      curLine--
-      newLines[curLine] = ""
-      continue
+      commentLine = '"/*line ' + curLine + ' */";'
 
-    # skip line after /*line -- comment
-    if line.indexOf("*/") is 0 && newLines[curLine] is ""
-      line = line.substring(2)
+      curLine--
+
+      if line isnt commentLine
+        line = line.substring(commentLine.length)
+        newLines[curLine] = line
+      else
+        newLines[curLine] = ""
+
+      continue
 
     newLines[curLine] += line
 
   # replace undefined indexes by ""
-  for own k, line of newLines
-    if line is "undefined"
-      newLines[k] = ""
+#  for own k, line of newLines
+#    if line is "undefined"
+#      newLines[k] = ""
+
+  # remove the extra lines at the bottom
+  i = newLines.length-1
+  while i > 1
+    if newLines[i] is ""
+      newLines.pop()
+    else
+      break
+    i--
 
   newLines.join("\n")
  

@@ -90,7 +90,7 @@ exports.Lexer = class Lexer
 
         if t[0] is 'TERMINATOR' or (t[0] in lineBlocks and lastTokenHadNewLine)
           lastTokenHadNewLine = false if t[0] is 'TERMINATOR'
-          line = 'line '
+          line = '"/*line '
           lineNumber = t[2]
           if lastToken
             lineNumber = lastToken[2]
@@ -98,11 +98,13 @@ exports.Lexer = class Lexer
           if lastTokenHadNewLine
             lineNumber = lastTokenLineNumber
 
-          line += lineNumber+1
+          line += lineNumber+1 + ' */"'
 
           # push comment with line number
-          res.push ['HERECOMMENT', line, lineNumber]
-          res.push ['TERMINATOR', "\n", lineNumber]
+          stringToken = ['STRING', line, lineNumber]
+          stringToken.newLine = true
+          res.push stringToken
+          res.push ['TERMINATOR', "\n", lineNumber+1]
 
           # push tokens (actual source code)
           res.push tm for tm in tmp
