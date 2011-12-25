@@ -34,7 +34,6 @@ exports.postCompilationMatchLines = (code) ->
   # break the code by line breaks
   lines = code.split("\n")
 
-#  console.log code
   newLines = []
 
   newLines.push("") for line in lines
@@ -50,12 +49,13 @@ exports.postCompilationMatchLines = (code) ->
 
       curLine--
 
-      if line isnt commentLine
-        line = line.substring(commentLine.length)
-        newLines[curLine] = line
-      else
-        newLines[curLine] = ""
+      newLines[curLine] = ""
 
+      continue
+
+    # remove the ({ }); if possible -- cannot remove within arrays
+    if curLine > 0 && newLines[curLine-1].substr('-2') is '({' && newLines[curLine] is "" && line is "});"
+      newLines[curLine-1] = newLines[curLine-1].substring(0, newLines[curLine-1].length-2)
       continue
 
     newLines[curLine] += line

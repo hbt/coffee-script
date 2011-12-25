@@ -21,7 +21,7 @@
 exports.Lexer = class Lexer
 
   @options = {}
-  
+
   # **tokenize** is the Lexer's main method. Scan by attempting to match tokens
   # one at a time, using a regular expression anchored at the start of the
   # remaining code, or a custom recursive token-matching method
@@ -65,7 +65,6 @@ exports.Lexer = class Lexer
     @closeIndentation()
     @error "missing #{tag}" if tag = @ends.pop()
     return @tokens if opts.rewrite is off
-    (new Rewriter).rewrite @tokens
 
     # hack to display line numbers in compiled JS code when in debug mode
     if @options.debug
@@ -102,9 +101,16 @@ exports.Lexer = class Lexer
 
           # push comment with line number
           stringToken = ['STRING', line, lineNumber]
-          stringToken.newLine = true
           res.push stringToken
-          res.push ['TERMINATOR', "\n", lineNumber+1]
+          semi = [':', ':', lineNumber]
+          semi.spaced = true
+          res.push semi
+#          res.push ['->', '->', lineNumber]
+          res.push ['[', '[', lineNumber]
+          res.push [']', ']', lineNumber]
+          res.push ['TERMINATOR', "\n", lineNumber]
+
+
 
           # push tokens (actual source code)
           res.push tm for tm in tmp
@@ -114,13 +120,14 @@ exports.Lexer = class Lexer
           tmp = []
           lastTokenHadNewLine = false
           lastToken = null
-          
+
 
         if t[0] not in blocks
           lastToken = t
 
       @tokens = res
 
+    (new Rewriter).rewrite @tokens
     @tokens
 
   # Tokenizers
