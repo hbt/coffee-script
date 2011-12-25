@@ -131,6 +131,10 @@ compileScript = (file, input, base) ->
     else
       t.options.debug = true if o.debug
       t.output = CoffeeScript.compile t.input, t.options
+
+      if o.debug
+        t.output = CoffeeScript.postCompilationMatchLines t.output
+
       CoffeeScript.emit 'success', task
       if o.print          then printLine t.output.trim()
       else if o.compile   then writeJs t.file, t.output, base

@@ -29,6 +29,37 @@ exports.RESERVED = RESERVED
 # Expose helpers for testing.
 exports.helpers = require './helpers'
 
+# If debug mode is enabled, will match the JS lines to the coffee-script
+exports.postCompilationMatchLines = (code) ->
+  # break the code by line breaks
+  lines = code.split("\n")
+
+  newLines = []
+
+  curLine = 0
+
+  for line in lines
+    line = line.trim()
+
+    if line.indexOf('/*line ') is 0
+      curLine = line.match(/\d+/)
+      curLine--
+      newLines[curLine] = ""
+      continue
+
+    # skip line after /*line -- comment
+    if line is "*/" && newLines[curLine] is ""
+      continue
+
+    newLines[curLine] += line
+
+  # replace undefined indexes by ""
+  for own k, line of newLines
+    if line is "undefined"
+      newLines[k] = ""
+
+  newLines.join("\n")
+ 
 # Compile a string of CoffeeScript code to JavaScript, using the Coffee/Jison
 # compiler.
 exports.compile = compile = (code, options = {}) ->

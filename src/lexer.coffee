@@ -65,7 +65,6 @@ exports.Lexer = class Lexer
     @closeIndentation()
     @error "missing #{tag}" if tag = @ends.pop()
     return @tokens if opts.rewrite is off
-
     (new Rewriter).rewrite @tokens
 
     # hack to display line numbers in compiled JS code when in debug mode
@@ -82,8 +81,9 @@ exports.Lexer = class Lexer
 
       for t in @tokens
         tmp.push t
+        # TODO: improve to handle "newLine" attribute. Careful with indentation errors 
 
-        if t[0] == 'TERMINATOR'
+        if t[0] == 'TERMINATOR' 
           line = 'line '
           lineNumber = t[2]
           if lastToken
@@ -106,8 +106,6 @@ exports.Lexer = class Lexer
         if t[0] not in blocks
           lastToken = t
 
-
-      
       @tokens = res
 
     @tokens
