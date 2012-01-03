@@ -65,6 +65,8 @@ exports.Lexer = class Lexer
     @closeIndentation()
     @error "missing #{tag}" if tag = @ends.pop()
     return @tokens if opts.rewrite is off
+    @tokens = (new Rewriter).rewrite @tokens
+    console.log @tokens
 
     # hack to display line numbers in compiled JS code when in debug mode
     if @options.debug
@@ -72,20 +74,25 @@ exports.Lexer = class Lexer
 
       # list of special tokens that could change the line number -- to be ignored
       # TODO: re-use constants instead of redefining
-      blocks = [['(', ')'], ['[', ']'], ['{', '}'], ['INDENT', 'OUTDENT'], ['CALL_START', 'CALL_END'], ['PARAM_START', 'PARAM_END'], ['INDEX_START', 'INDEX_END'], ['INDENT', 'OUTDENT', 'TERMINATOR']];
+      blocks = [['INDENT', 'OUTDENT'], ['CALL_START', 'CALL_END'], ['PARAM_START', 'PARAM_END'], ['INDEX_START', 'INDEX_END'], ['INDENT', 'OUTDENT', 'TERMINATOR']];
       blocks = flatten blocks
 
       lastToken = null
       lineBlocks = ['INDENT']
       tmp = []
       lastTokenHadNewLine = false
+      inObj = false
+      curIndent = 0
+      objIndent = null
 
       for t in @tokens
         tmp.push t
 
         lastTokenHadNewLine = true if lastToken and lastToken.newLine and lastToken[0] isnt 'TERMINATOR'
-
         lastTokenLineNumber = lastToken[2] if lastTokenHadNewLine
+
+        curIndent++ if t[0] is 'INDENT'
+        curIndent-- if t[0] is 'OUTDENT'
 
         if t[0] is 'TERMINATOR' or (t[0] in lineBlocks and lastTokenHadNewLine)
           lastTokenHadNewLine = false if t[0] is 'TERMINATOR'
@@ -99,21 +106,46 @@ exports.Lexer = class Lexer
 
           line += lineNumber+1 + ' */"'
 
+          if curIndent < objIndent
+            inObj = false
+
           # push comment with line number
           stringToken = ['STRING', line, lineNumber]
-          res.push stringToken
-          semi = [':', ':', lineNumber]
-          semi.spaced = true
-          res.push semi
-#          res.push ['->', '->', lineNumber]
-          res.push ['[', '[', lineNumber]
-          res.push [']', ']', lineNumber]
-          res.push ['TERMINATOR', "\n", lineNumber]
 
+          # use object notation for comment if in object
 
+          indentation = curIndent
+          if t[0] is 'INDENT'
+            indentation = curIndent-1
+
+          console.log inObj, curIndent, indentation, objIndent
+          
+          if inObj && indentation is objIndent
+            if tmp[0][0] is '{'
+              res.push tmp[0]
+              tmp = tmp.splice(1)
+              
+            console.log "hhhhhhhhhh"
+            res.push stringToken
+            semi = [':', ':', lineNumber]
+            semi.spaced = true
+            res.push semi
+            res.push ['[', '[', lineNumber]
+            so = [']', ']', lineNumber]
+            so.newLine = true
+            res.push so
+            res.push ['TERMINATOR', "\n", lineNumber]
+          else
+            res.push stringToken
+            res.push ['TERMINATOR', "\n", lineNumber]
 
           # push tokens (actual source code)
           res.push tm for tm in tmp
+
+          # mark that we are in an object
+          if lastToken && lastToken[0] is '=' && lastToken.newLine && t[0] is 'INDENT'
+            inObj = true
+            objIndent = curIndent
 
           # reset
           line = ''
@@ -127,7 +159,7 @@ exports.Lexer = class Lexer
 
       @tokens = res
 
-    (new Rewriter).rewrite @tokens
+    console.log @tokens
     @tokens
 
   # Tokenizers
