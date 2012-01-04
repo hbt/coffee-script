@@ -65,101 +65,120 @@ exports.Lexer = class Lexer
     @closeIndentation()
     @error "missing #{tag}" if tag = @ends.pop()
     return @tokens if opts.rewrite is off
-    @tokens = (new Rewriter).rewrite @tokens
-    console.log @tokens
+    (new Rewriter).rewrite @tokens
 
-    # hack to display line numbers in compiled JS code when in debug mode
     if @options.debug
+
       res = []
-
-      # list of special tokens that could change the line number -- to be ignored
-      # TODO: re-use constants instead of redefining
-      blocks = [['INDENT', 'OUTDENT'], ['CALL_START', 'CALL_END'], ['PARAM_START', 'PARAM_END'], ['INDEX_START', 'INDEX_END'], ['INDENT', 'OUTDENT', 'TERMINATOR']];
-      blocks = flatten blocks
-
-      lastToken = null
-      lineBlocks = ['INDENT']
       tmp = []
-      lastTokenHadNewLine = false
-      inObj = false
-      curIndent = 0
-      objIndent = null
+      lastLineNumber = @tokens[0][2]
+      indentation = 0
+      lastToken = null
+      skipNext = false
 
-      for t in @tokens
-        tmp.push t
+      blocks = [['CALL_START', 'CALL_END'], ['PARAM_START', 'PARAM_END'], ['INDEX_START', 'INDEX_END', ']', '}', 'OUTDENT']]
+      blocks = flatten blocks
+      
+      # contains a list of indentation levels identifying JSON objects
+      indentationObjects = []
 
-        lastTokenHadNewLine = true if lastToken and lastToken.newLine and lastToken[0] isnt 'TERMINATOR'
-        lastTokenLineNumber = lastToken[2] if lastTokenHadNewLine
+      for own k, curToken of @tokens
+        if skipNext
+          skipNext = false
+          continue
+         
+        k = (Number) k
+        tmp.push curToken
+        curLineNumber = curToken[2] if curToken[0] not in blocks
 
-        curIndent++ if t[0] is 'INDENT'
-        curIndent-- if t[0] is 'OUTDENT'
 
-        if t[0] is 'TERMINATOR' or (t[0] in lineBlocks and lastTokenHadNewLine)
-          lastTokenHadNewLine = false if t[0] is 'TERMINATOR'
-          line = '"/*line '
-          lineNumber = t[2]
-          if lastToken
-            lineNumber = lastToken[2]
+        # new line OR last token
+#        console.log curToken, k, @tokens.length-1
+        if curLineNumber != lastLineNumber or k is @tokens.length-1
 
-          if lastTokenHadNewLine
-            lineNumber = lastTokenLineNumber
+          if curToken[0] is 'INDENT' and @tokens[k+1][0] is '{'
+            tmp.push @tokens[k+1]
+            skipNext = true
 
-          line += lineNumber+1 + ' */"'
+          # create line comment
+          formattedLineNumber = lastLineNumber + 1
+          commentLine = '"line: ' + formattedLineNumber + '"'
 
-          if curIndent < objIndent
-            inObj = false
-
-          # push comment with line number
-          stringToken = ['STRING', line, lineNumber]
-
-          # use object notation for comment if in object
-
-          indentation = curIndent
-          if t[0] is 'INDENT'
-            indentation = curIndent-1
-
-          console.log inObj, curIndent, indentation, objIndent
           
-          if inObj && indentation is objIndent
-            if tmp[0][0] is '{'
-              res.push tmp[0]
-              tmp = tmp.splice(1)
-              
-            console.log "hhhhhhhhhh"
-            res.push stringToken
-            semi = [':', ':', lineNumber]
-            semi.spaced = true
-            res.push semi
-            res.push ['[', '[', lineNumber]
-            so = [']', ']', lineNumber]
-            so.newLine = true
-            res.push so
-            res.push ['TERMINATOR', "\n", lineNumber]
+          if @tokens[k+1] isnt undefined and @tokens[k+1][0] is 'TERMINATOR'
+            tmp.push @tokens[k+1]
+            
+            skipNext = true
+
+          # are we in a JSON object?
+          if indentation in indentationObjects
+#            res.push ['TERMINATOR', "\n", lastLineNumber] if res.length > 0 and res[res.length-1][0] isnt 'TERMINATOR'
+            res.push ['STRING', commentLine, lastLineNumber]
+            res.push [':', ':', lastLineNumber]
+            res.push ['STRING', '""', lastLineNumber]
           else
-            res.push stringToken
-            res.push ['TERMINATOR', "\n", lineNumber]
+            # push line comment
+            res.push ['STRING', commentLine, lastLineNumber]
 
-          # push tokens (actual source code)
-          res.push tm for tm in tmp
 
-          # mark that we are in an object
-          if lastToken && lastToken[0] is '=' && lastToken.newLine && t[0] is 'INDENT'
-            inObj = true
-            objIndent = curIndent
+          res.push ['TERMINATOR', "\n", lastLineNumber+1] if tmp[0][0] isnt 'TERMINATOR'
 
-          # reset
-          line = ''
+          # push rest of tokens
+          for tm in tmp
+            # increase line number
+            tm[2] = tm[2]+1
+            res.push tm
+
+          for tm in tmp
+            if tm[0] is 'OUTDENT'
+              indentation--
+
           tmp = []
-          lastTokenHadNewLine = false
-          lastToken = null
+          lastLineNumber = curLineNumber
+
+        indentation++ if curToken[0] is 'INDENT'
+       
+        if curToken[0] is 'INDENT' and lastToken[0] in ['=', '{'] and lastToken.newLine
+          indentationObjects.push indentation
+
+        lastToken = curToken
 
 
-        if t[0] not in blocks
-          lastToken = t
+      
+      res2 = [ [ 'STRING', '"line: 1"', 0 ],
+                  [ 'TERMINATOR', '\n', 1 ],
+                  [ 'IDENTIFIER', 'mom', 1, spaced: true ],
+                  [ '=', '=', 1, newLine: true ],
+                  [ 'INDENT', 2, 2 ],
+                  [ '{', { '0': '{', generated: true }, 2, generated: true ],
+                  [ 'STRING', '"line: 2"', 1 ],
+                  [ ':', ':', 1 ],
+                  [ 'STRING', '""', 1 ],
+                  [ 'TERMINATOR', '\n', 2 ],
+                  [ 'IDENTIFIER', 'ff', 2 ],
+                  [ ':', ':', 2, spaced: true ],
+                  [ '->', '->', 2, newLine: true ],
+                  [ 'INDENT', 2, 3 ],
+                  [ 'STRING', '"line: 3"', 2 ],
+                  [ 'TERMINATOR', '\n', 3 ],
+                  [ '@', '@', 3 ],
+                  [ 'IDENTIFIER', 'tt', 3, newLine: true ],
+                  [ 'OUTDENT', 2, 4 ],
+                  [ 'TERMINATOR', '\n', 3 ],
+                  [ 'STRING', '"line: 4"', 3 ],
+                  [ ':', ':', 3 ],
+                  [ 'STRING', '""', 3 ],
+                  [ 'TERMINATOR', '\n', 4 ],
+                  [ 'STRING', '"asd"', 4 ],
+                  [ ':', ':', 4, spaced: true ],
+                  [ 'STRING', '""', 4 ],
+                  [ '}', '}', 4, generated: true ],
+                  [ 'OUTDENT', 2, 4 ],
+                  [ 'TERMINATOR', '\n', 4 ] ]
+      
 
       @tokens = res
 
-    console.log @tokens
     @tokens
 
   # Tokenizers

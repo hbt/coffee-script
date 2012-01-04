@@ -34,6 +34,8 @@ exports.postCompilationMatchLines = (code) ->
   # break the code by line breaks
   lines = code.split("\n")
 
+  console.log code
+
   newLines = []
 
   newLines.push("") for line in lines
