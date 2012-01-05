@@ -69,42 +69,25 @@ exports.Lexer = class Lexer
 
     if @options.debug
 
-#      console.log @tokens
       res = []
       tmp = []
-      lastLineNumber = @tokens[0][2]
       indentation = 0
-      lastToken = null
-      skipNext = false
-
-      blocks = [['CALL_START', 'CALL_END'], ['PARAM_START', 'PARAM_END'], ['INDEX_START', 'INDEX_END', ']', '}', 'OUTDENT']]
-      blocks = flatten blocks
       
       # contains a list of indentation levels identifying JSON objects
       indentationObjects = []
 
       for own k, curToken of @tokens
-        if skipNext
-          skipNext = false
-          continue
-         
         k = (Number) k
         tmp.push curToken
-        curLineNumber = curToken[2] if curToken[0] not in blocks
 
 
         # new line OR last token
         if curToken[0] is 'TERMINATOR'
 
+          lastLineNumber = curToken[2]-1
           # create line comment
           formattedLineNumber = lastLineNumber + 1
           commentLine = '"line: ' + formattedLineNumber + '"'
-
-          
-          if @tokens[k+1] isnt undefined and @tokens[k+1][0] is 'TERMINATOR'
-            tmp.push @tokens[k+1]
-            
-            skipNext = true
 
           # are we in a JSON object?
           if indentation in indentationObjects
@@ -125,34 +108,19 @@ exports.Lexer = class Lexer
             if tm[0] is 'INDENT' and ltm[0] in ['=', '{'] and ltm.newLine
               indentationObjects.push indentation
 
-            ltm = tm
-
-          # push rest of tokens
-          for tm in tmp
-            # increase line number
             tm[2] = tm[2]+1
             res.push tm
+            ltm = tm
 
           for tm in tmp
             if tm[0] is 'OUTDENT'
               for own tk, tv of indentationObjects
                 if tv is indentation
-                  console.log tv
                   indentationObjects[tk] = undefined
-                  console.log indentationObjects
               indentation--
 
 
           tmp = []
-          lastLineNumber = curLineNumber
-
-        
-
-        lastToken = curToken
-
-
-
-      console.log res, indentationObjects
 
       @tokens = res
 
