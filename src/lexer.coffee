@@ -69,6 +69,7 @@ exports.Lexer = class Lexer
 
     if @options.debug
 
+#      console.log @tokens
       res = []
       tmp = []
       lastLineNumber = @tokens[0][2]
@@ -93,12 +94,7 @@ exports.Lexer = class Lexer
 
 
         # new line OR last token
-#        console.log curToken, k, @tokens.length-1
-        if curLineNumber != lastLineNumber or k is @tokens.length-1
-
-          if curToken[0] is 'INDENT' and @tokens[k+1][0] is '{'
-            tmp.push @tokens[k+1]
-            skipNext = true
+        if curToken[0] is 'TERMINATOR'
 
           # create line comment
           formattedLineNumber = lastLineNumber + 1
@@ -112,16 +108,24 @@ exports.Lexer = class Lexer
 
           # are we in a JSON object?
           if indentation in indentationObjects
-#            res.push ['TERMINATOR', "\n", lastLineNumber] if res.length > 0 and res[res.length-1][0] isnt 'TERMINATOR'
             res.push ['STRING', commentLine, lastLineNumber]
             res.push [':', ':', lastLineNumber]
             res.push ['STRING', '""', lastLineNumber]
           else
             # push line comment
-            res.push ['STRING', commentLine, lastLineNumber]
+            res.push ['STRING', commentLine + ";;", lastLineNumber]
 
 
           res.push ['TERMINATOR', "\n", lastLineNumber+1] if tmp[0][0] isnt 'TERMINATOR'
+
+          ltm = null
+          for tm in tmp
+            indentation++ if tm[0] is 'INDENT'
+
+            if tm[0] is 'INDENT' and ltm[0] in ['=', '{'] and ltm.newLine
+              indentationObjects.push indentation
+
+            ltm = tm
 
           # push rest of tokens
           for tm in tmp
@@ -131,51 +135,24 @@ exports.Lexer = class Lexer
 
           for tm in tmp
             if tm[0] is 'OUTDENT'
+              for own tk, tv of indentationObjects
+                if tv is indentation
+                  console.log tv
+                  indentationObjects[tk] = undefined
+                  console.log indentationObjects
               indentation--
+
 
           tmp = []
           lastLineNumber = curLineNumber
 
-        indentation++ if curToken[0] is 'INDENT'
-       
-        if curToken[0] is 'INDENT' and lastToken[0] in ['=', '{'] and lastToken.newLine
-          indentationObjects.push indentation
+        
 
         lastToken = curToken
 
 
-      
-      res2 = [ [ 'STRING', '"line: 1"', 0 ],
-                  [ 'TERMINATOR', '\n', 1 ],
-                  [ 'IDENTIFIER', 'mom', 1, spaced: true ],
-                  [ '=', '=', 1, newLine: true ],
-                  [ 'INDENT', 2, 2 ],
-                  [ '{', { '0': '{', generated: true }, 2, generated: true ],
-                  [ 'STRING', '"line: 2"', 1 ],
-                  [ ':', ':', 1 ],
-                  [ 'STRING', '""', 1 ],
-                  [ 'TERMINATOR', '\n', 2 ],
-                  [ 'IDENTIFIER', 'ff', 2 ],
-                  [ ':', ':', 2, spaced: true ],
-                  [ '->', '->', 2, newLine: true ],
-                  [ 'INDENT', 2, 3 ],
-                  [ 'STRING', '"line: 3"', 2 ],
-                  [ 'TERMINATOR', '\n', 3 ],
-                  [ '@', '@', 3 ],
-                  [ 'IDENTIFIER', 'tt', 3, newLine: true ],
-                  [ 'OUTDENT', 2, 4 ],
-                  [ 'TERMINATOR', '\n', 3 ],
-                  [ 'STRING', '"line: 4"', 3 ],
-                  [ ':', ':', 3 ],
-                  [ 'STRING', '""', 3 ],
-                  [ 'TERMINATOR', '\n', 4 ],
-                  [ 'STRING', '"asd"', 4 ],
-                  [ ':', ':', 4, spaced: true ],
-                  [ 'STRING', '""', 4 ],
-                  [ '}', '}', 4, generated: true ],
-                  [ 'OUTDENT', 2, 4 ],
-                  [ 'TERMINATOR', '\n', 4 ] ]
-      
+
+      console.log res, indentationObjects
 
       @tokens = res
 
