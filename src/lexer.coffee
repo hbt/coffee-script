@@ -69,9 +69,11 @@ exports.Lexer = class Lexer
 
     if @options.debug
 
+      console.log @tokens
       res = []
       tmp = []
       indentation = 0
+      lastNewLine = null
       
       # contains a list of indentation levels identifying JSON objects
       indentationObjects = []
@@ -80,13 +82,19 @@ exports.Lexer = class Lexer
         k = (Number) k
         tmp.push curToken
 
+        lastNewLine = curToken[2] if curToken.newLine
+
 
         # new line OR last token
         if curToken[0] is 'TERMINATOR'
 
-          lastLineNumber = curToken[2]
+          if lastNewLine
+            lastLineNumber = lastNewLine
+          else
+            lastLineNumber = curToken[2]
+            
           # create line comment
-          formattedLineNumber = lastLineNumber-2
+          formattedLineNumber = lastLineNumber
           commentLine = '"::line:: ' + formattedLineNumber + '"'
 
           # are we in a JSON object?
@@ -121,6 +129,7 @@ exports.Lexer = class Lexer
 
 
           tmp = []
+          lastNewLine = null
 
       @tokens = res
 

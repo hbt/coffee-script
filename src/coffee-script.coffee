@@ -61,8 +61,8 @@ exports.postCompilationMatchLines = (code) ->
 
       # on its own line e.g "::line:: 52";
       guessLine = '"::line:: ' + lineNumber + '";'
-      if posi is 1
-        line = "" if line is guessLine
+      if line.indexOf(guessLine) isnt -1
+        line = line.replace(guessLine, "")
 
       # in constructor
       guessLine = '}, "::line:: ' + lineNumber + '", {'
