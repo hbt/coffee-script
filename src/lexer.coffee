@@ -81,7 +81,7 @@ exports.Lexer = class Lexer
         k = (Number) k
         tmp.push curToken
 
-        lastNewLine = curToken[2] if curToken.newLine
+        lastNewLine = curToken[2] if curToken.newLine and lastNewLine is null
 
 
         # new line OR last token
