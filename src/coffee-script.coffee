@@ -34,38 +34,65 @@ exports.postCompilationMatchLines = (code) ->
   # break the code by line breaks
   lines = code.split("\n")
 
-  console.log code
+#  console.log code
 
   newLines = []
 
   newLines.push("") for line in lines
 
-  curLine = 0
+  curLineNumber = -1
+  firstLines = ""
 
   for line in lines
     line = line.trim()
 
-    if line.indexOf('"/*line ') is 0
-      curLine = line.match(/\d+/)
-      commentLine = '"/*line ' + curLine + ' */";'
+    # line number string
+    posi = line.indexOf('::line:: ')
+    if posi isnt -1
 
-      curLine--
+      lineNumber = line.match(/::line:: \d+/)[0].match(/\d+/)
 
-      newLines[curLine] = ""
+      # push the first lines
+      if curLineNumber is -1
+        newLines[lineNumber] = "" if newLines[lineNumber] is undefined
+        newLines[lineNumber] += firstLines
 
-      continue
+      curLineNumber = lineNumber
 
-    # remove the ({ }); if possible -- cannot remove within arrays
-    if curLine > 0 && newLines[curLine-1].substr('-2') is '({' && newLines[curLine] is "" && line is "});"
-      newLines[curLine-1] = newLines[curLine-1].substring(0, newLines[curLine-1].length-2)
-      continue
+      # on its own line e.g "::line:: 52";
+      guessLine = '"::line:: ' + lineNumber + '";'
+      if posi is 1
+        line = "" if line is guessLine
 
-    newLines[curLine] += line
+      # in constructor
+      guessLine = '}, "::line:: ' + lineNumber + '", {'
+      if line.indexOf(guessLine) is 0
+        line = line.replace(guessLine, ",")
+
+      # json object
+      guessLine = '"::line:: ' + lineNumber + '": "",'
+      if line.indexOf(guessLine) is 0
+        line = line.replace(guessLine, "")
+
+      # array
+      # TODO: display each line as its own
+      guessLine = '"::line:: ' + lineNumber + '",'
+      while line.indexOf('::line::') isnt -1
+        lineNumber = line.match(/::line:: \d+/)[0].match(/\d+/)
+        guessLine = '"::line:: ' + lineNumber + '",'
+        line = line.replace(guessLine, "")
+
+
+    if curLineNumber is -1
+      firstLines += line
+    else
+      newLines[curLineNumber] = "" if newLines[curLineNumber] is undefined
+      newLines[curLineNumber] += line
 
   # replace undefined indexes by ""
-#  for own k, line of newLines
-#    if line is "undefined"
-#      newLines[k] = ""
+  for own k, line of newLines
+    if line is "undefined" or line is undefined
+      newLines[k] = ""
 
   # remove the extra lines at the bottom
   i = newLines.length-1

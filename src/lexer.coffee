@@ -84,10 +84,10 @@ exports.Lexer = class Lexer
         # new line OR last token
         if curToken[0] is 'TERMINATOR'
 
-          lastLineNumber = curToken[2]-1
+          lastLineNumber = curToken[2]
           # create line comment
-          formattedLineNumber = lastLineNumber + 1
-          commentLine = '"line: ' + formattedLineNumber + '"'
+          formattedLineNumber = lastLineNumber-2
+          commentLine = '"::line:: ' + formattedLineNumber + '"'
 
           # are we in a JSON object?
           if indentation in indentationObjects
@@ -96,7 +96,7 @@ exports.Lexer = class Lexer
             res.push ['STRING', '""', lastLineNumber]
           else
             # push line comment
-            res.push ['STRING', commentLine + ";;", lastLineNumber]
+            res.push ['STRING', commentLine, lastLineNumber]
 
 
           res.push ['TERMINATOR', "\n", lastLineNumber+1] if tmp[0][0] isnt 'TERMINATOR'
