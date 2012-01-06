@@ -44,7 +44,6 @@ exports.postCompilationMatchLines = (code) ->
   firstLines = ""
 
   for line in lines
-    line = line.trim()
 
     # line number string
     posi = line.indexOf('::line:: ')
@@ -66,12 +65,12 @@ exports.postCompilationMatchLines = (code) ->
 
       # in constructor
       guessLine = '}, "::line:: ' + lineNumber + '", {'
-      if line.indexOf(guessLine) is 0
+      if line.trim().indexOf(guessLine) is 0
         line = line.replace(guessLine, ",")
 
       # json object
       guessLine = '"::line:: ' + lineNumber + '": "",'
-      if line.indexOf(guessLine) is 0
+      if line.trim().indexOf(guessLine) is 0
         line = line.replace(guessLine, "")
 
       # array

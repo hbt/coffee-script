@@ -69,7 +69,6 @@ exports.Lexer = class Lexer
 
     if @options.debug
 
-      console.log @tokens
       res = []
       tmp = []
       indentation = 0
