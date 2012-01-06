@@ -73,6 +73,8 @@ exports.postCompilationMatchLines = (code) ->
       if line.trim().indexOf(guessLine) is 0
         line = line.replace(guessLine, "")
 
+      # TODO: check the next line numbers and fill using '{' as a separator. This should take care of most functions
+
       # array
       # TODO: display each line as its own
       guessLine = '"::line:: ' + lineNumber + '",'
